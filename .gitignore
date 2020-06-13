@@ -28,3 +28,7 @@ node_modules
 
 *.pyc
 *.cfg
+
+debug.py
+
+static/
