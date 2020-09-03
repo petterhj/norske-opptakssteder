@@ -28,6 +28,7 @@ node_modules
 
 *.pyc
 *.cfg
+*.zip
 
 debug.py
 

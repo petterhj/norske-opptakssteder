@@ -1,60 +1,72 @@
-from sqlalchemy_media import (
-    ImageAnalyzer, ImageValidator, ImageProcessor
-)
+from enum import Enum
+from datetime import date
+from pydantic import Field, FilePath, validator
+from pymongo import IndexModel
+from typing import Optional, List
+# from slugify import slugify
 
-from .media import Image, ImageJson
-from database import db
-
-
-class ProductionPoster(Image):
-    __directory__ = 'posters'
-    __prefix__ = 'poster'
-    __pre_processors__ = [
-        ImageAnalyzer(),
-        ImageValidator(
-            minimum=(200, 290),
-            maximum=(800, 1164),
-            min_aspect_ratio=0.6,
-            content_types=['image/jpeg', 'image/png']
-        ),
-        ImageProcessor(
-            fmt='jpeg',
-            width=120,
-        )
-    ]
+from .base import MongoDocument
+# from .common import SourcesMixin
+from .people import Person
+# from .fields import AutoSlug
 
 
-class Production(db.Model):
-    pk = db.Column(db.Integer, primary_key=True)
-    slug = db.Column(db.String(50), unique=True, nullable=False)
+class ProductionType(str, Enum):
+    film = "film"
+    tv = "tv"
 
-    title = db.Column(db.String(50), nullable=False)
-    released = db.Column(db.Date, nullable=False)
-    summary = db.Column(db.Text, nullable=True)
-    summary_credit = db.Column(db.String(30), nullable=True)
-    runtime = db.Column(db.SmallInteger, nullable=True)
 
-    directors = db.relationship('Person', secondary=db.Table(
-        'directing',
-        db.Column('production_pk', db.Integer, db.ForeignKey('production.pk')),
-        db.Column('person_pk', db.Integer, db.ForeignKey('person.pk'))
-    ))
+class Production(MongoDocument):
+    type: Optional[ProductionType] = None
 
-    # writers = ManyToManyField('Person', blank=True, related_name='writers')
-    # photographers = ManyToManyField('Person', blank=True, related_name='photographers')
-    # producers = ManyToManyField('Company', blank=True, related_name='producers')
-    # distributors = ManyToManyField('Company', blank=True, related_name='distributors')
+    title: str = Field(max_length=75)
+    release_date: date
+    summary: Optional[str] = Field(max_length=500)
+    summary_credit: Optional[str] = Field(max_length=30)
+    runtime: Optional[int] = Field(ge=0, le=360)
 
-    poster = db.Column(ProductionPoster.as_mutable(ImageJson))
+    directors: Optional[List[Person]] = list()
 
-    imdb_id = db.Column(db.String(10), unique=True, nullable=False)
-    tmdb_id = db.Column(db.String(10), unique=True, nullable=True)
-    nbdb_id = db.Column(db.String(10), unique=True, nullable=True)
+    imdb_id: str = Field(max_length=10)
+    tmdb_id: Optional[str] = Field(max_length=10)
+    nbdb_id: Optional[str] = Field(max_length=10)
+
+    poster: FilePath = None
+
+    # slug: str = None
+    # slug: AutoSlug = Field(..., populate_from="title")
+
+    # @validator("slug", pre=True, always=True)
+    # async def slugify(cls, v, values, field, config):
+    #     print("^"*10)
+    #     print("CLS", cls)
+    #     print("V", v)
+    #     print("VALUES", values)
+    #     print("FIELD",  field)
+    #     print("CONFIG", config)
+    #     print("^"*10)
+    #     slug = slugify(values["title"], to_lower=True)
+    #     print(slug)
+    #     print("="*10)
+    #     p = await cls.find_one({"slug": slug})
+    #     print(cls.find_one({"slug": slug}))
+    #     print("="*10)
+    #     return None
+
+    @validator("poster")
+    def path_string(cls, v):
+        if v:
+            return str(v)
 
     @property
     def year(self):
-        return self.released.year
+        return self.release_date.year
 
-    @property
-    def title_with_year(self):
-        return f'{self.title} ({self.year})'
+    def dict(self, *args, **kwargs):
+        attrs = super().dict(*args, **kwargs)
+        attrs.update({"year": self.year})
+        return attrs
+
+    class Mongo:
+        collection = "productions"
+        indexes = [IndexModel("imdb_id", unique=True)]

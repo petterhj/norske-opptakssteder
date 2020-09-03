@@ -2,19 +2,15 @@
 
 ## Backend
 
-```
-export FLASK_ENV="development"
-export FLASK_APP="app"
+### Database
 
-flask run
-```
 
-### Database migration
+
+### Run
+
 ```
-flask db init
-flask db migrate
-flask db upgrade
-flask db --help
+cd backend/
+make run
 ```
 
 ## Frontend

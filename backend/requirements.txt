@@ -1,6 +1,6 @@
-flask
-flask-restful
-flask-sqlalchemy 
-flask-migrate
-sqlalchemy-media
-python-slugify
+pydantic
+awesome-slugify
+fastapi[all]
+uvicorn
+motor
+git+https://github.com/codello/Motor-ODM.git
