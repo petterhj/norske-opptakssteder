@@ -1,4 +1,9 @@
+.PHONY: init
+init:
+	python -m venv .venv
+	. .venv/bin/activate
+	pip install -r requirements.txt
+
 .PHONY: run
 run:
-	. .venv/Scripts/activate
 	uvicorn fast:app --reload
